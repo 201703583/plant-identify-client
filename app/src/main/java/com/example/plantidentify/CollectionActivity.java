@@ -2,7 +2,9 @@ package com.example.plantidentify;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -15,6 +17,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -62,6 +65,60 @@ public class CollectionActivity extends AppCompatActivity {
                 Intent intent = new Intent(mContext, PlantDetailActivity.class);
                 intent.putExtra("plantName",plantName);
                 startActivity(intent);
+            }
+        });
+
+        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int position, long id) {
+                //定义AlertDialog.Builder对象，当长按列表项的时候弹出确认删除对话框
+                AlertDialog.Builder builder=new AlertDialog.Builder(mContext);
+                builder.setMessage("确定删除?");
+                builder.setTitle("提示");
+
+                //添加AlertDialog.Builder对象的setPositiveButton()方法
+                builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if(mData.remove(position)!=null){
+                            Plant plant = mData.get(position);
+                            String plantName = plant.getPlantName();
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    final String serverPath = "http://192.168.137.1:8888/delete_collect";//本地测试
+                                    //http://127.0.0.1:5000/select_collect?username=siyu
+                                    String address =serverPath+ "?username=" + userName+"&plantname="+plantName;
+                                    HttpUtil.sendOkHttpReqest(address, new Callback() {
+                                        @Override
+                                        public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                                            //TODO
+                                        }
+                                        @Override
+                                        public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                                        }
+                                    });
+                                }
+                            }).start();
+                        }else {
+                            System.out.println("failed");
+                        }
+                        mAdapter.notifyDataSetChanged();
+                        Toast.makeText(getBaseContext(), "删除列表项", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                //添加AlertDialog.Builder对象的setNegativeButton()方法
+                builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+
+                builder.create().show();
+                return false;
             }
         });
     }
